@@ -25,6 +25,8 @@ public class TestAop {
             // 핵심기능 수행
             Object output = joinPoint.proceed();
 
+
+
         log.info("TestAop Run");
             return output;
 

@@ -30,10 +30,7 @@ public class PostController {
     @PostMapping("/posts")
     public PostResponseDto createPost(@RequestBody PostRequestDto requestDto, @ApiIgnore @AuthenticationPrincipal UserDetailsImpl userDetails) {
 
-
-
         if(requestDto.getContents().equals("욕")){
-
             throw new IllegalArgumentException("글 못올린다!");
         }
         return postService.createPost(requestDto, userDetails.getUser());
@@ -41,17 +38,12 @@ public class PostController {
 
     @GetMapping("/posts")
     public List<PostResponseDto> getPosts() {
-
-
         return postService.getPosts();
     }
 
     @GetMapping("/posts/{id}")
     public PostResponseDto readPost(@PathVariable Long id) {
-
         PostResponseDto postResponseDto = postService.readPost(id);
-
-
         return postResponseDto;
     }
 
@@ -73,9 +65,9 @@ public class PostController {
 
     @PutMapping("/posts/{id}")
     public PostResponseDto updatePost(@PathVariable Long id, @RequestBody PostRequestDto requestDto,
-                                      HttpServletRequest request) {
+                                      @ApiIgnore @AuthenticationPrincipal UserDetailsImpl userDetails) {
 
-        PostResponseDto postResponseDto = postService.updatePost(id, requestDto, request);
+        PostResponseDto postResponseDto = postService.updatePost(id, requestDto, userDetails.getUser());
 
 
         return postResponseDto;

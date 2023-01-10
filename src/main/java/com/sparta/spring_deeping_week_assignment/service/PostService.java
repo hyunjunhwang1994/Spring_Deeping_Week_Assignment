@@ -28,7 +28,6 @@ public class PostService {
 
     private final LikePostRepository likePostRepository;
     private final LikeCommentsRepository likeCommentsRepository;
-    private final JwtUtil jwtUtil;
 
 
     public PostResponseDto createPost(PostRequestDto requestDto, User user) {
@@ -185,64 +184,45 @@ public class PostService {
     }
 
     @Transactional
-    public PostResponseDto updatePost(Long id, PostRequestDto requestDto, HttpServletRequest request) {
+    public PostResponseDto updatePost(Long id, PostRequestDto requestDto, User user) {
 
 
 
-        String token = jwtUtil.resolveToken(request);
-        Claims claims;
+            // 운영자.
+            if (user.getRole().equals(UserRoleEnum.ADMIN)) {
+                // 위의 findByIdAndUser는 접속 유저 Id + 글 Id가 일치해야
+                // 데이터를 가지고오므로, 운영자의 경우 접속 시 데이터를 못가지고 옴 -> 그냥 id로 바로 접근.
+                Optional<Post> postOptional = postRepository.findById(id);
 
+                if (postOptional.isPresent()) {
+                    Post postAdmin = postOptional.get();
+                    postAdmin.updatePost(requestDto);
 
-        if (token != null) {
-
-            if (jwtUtil.validateToken(token)) {
-
-                claims = jwtUtil.getUserInfoFromToken(token);
-
-            } else {
-                throw new IllegalArgumentException("Token Error");
-            }
-
-            User user = userRepository.findByUsername(claims.getSubject()).orElseThrow(
-                    () -> new IllegalArgumentException("사용자가 존재하지 않습니다.")
-            );
-
-
-
-            Post post = postRepository.findByIdAndUser_Id(id, user.getId());
-
-
-            if (user.getRole() == UserRoleEnum.ADMIN) {
-                Optional<Post> postAdmin = postRepository.findById(id);
-
-                if (postAdmin.isPresent()) {
-                    Post temp = postAdmin.get();
-
-                    temp.updatePost(requestDto);
-                    List<Comment> commentList = commentRepository.findAllByPost_IdOrderByCreatedAtDesc(temp.getId());
+                    // 해당 글의 모든 댓글 데이터 가져옴
+                    List<Comment> commentList = commentRepository.findAllByPost_IdOrderByCreatedAtDesc(postAdmin.getId());
                     List<PostCommentResponseDto> postCommentResponseDto = new ArrayList<>();
 
+                    // 해당 글의 모든 좋아요 갯수 구하기.
                     List<LikePost> likePostsList;
-                    likePostsList = likePostRepository.findByPostId(post.getId());
+                    likePostsList = likePostRepository.findByPostId(postAdmin.getId());
 
+                    // 해당 글의, 모든 댓글 좋아요 갯수 구하기.
                     List<LikeComments> likeCommentsList;
                     for (Comment comment : commentList) {
                         likeCommentsList = likeCommentsRepository.findByCommentId(comment.getId());
                         postCommentResponseDto.add(new PostCommentResponseDto(comment, likeCommentsList.size()));
-
                     }
 
-                    PostResponseDto postResponseDto = new PostResponseDto(temp, postCommentResponseDto, likePostsList.size());
-
-                    return postResponseDto;
-
+                    return  new PostResponseDto(postAdmin, postCommentResponseDto, likePostsList.size());
                 }
-
             }
 
 
-            if(post != null){
 
+        // 일반 유저
+        Post post = postRepository.findByIdAndUser_Id(id, user.getId());
+
+            if(post != null){
                 post.updatePost(requestDto);
                 List<Comment> commentList = commentRepository.findAllByPost_IdOrderByCreatedAtDesc(post.getId());
                 List<PostCommentResponseDto> postCommentResponseDto = new ArrayList<>();
@@ -257,34 +237,13 @@ public class PostService {
 
                 }
 
-                PostResponseDto postResponseDto = new PostResponseDto(post, postCommentResponseDto, likePostsList.size());
 
-
-
-                return postResponseDto;
+                return new PostResponseDto(post, postCommentResponseDto, likePostsList.size());
             }else{
-                return null;
+                throw new IllegalArgumentException(ResponseMessage.NOT_FOUND_POST);
             }
 
-        } else {
-            return null;
         }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 
 
@@ -294,5 +253,3 @@ public class PostService {
 
 
 
-
-}
