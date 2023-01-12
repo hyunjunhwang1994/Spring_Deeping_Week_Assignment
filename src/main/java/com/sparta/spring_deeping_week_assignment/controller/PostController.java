@@ -32,9 +32,6 @@ public class PostController {
     @PostMapping("/posts")
     public PostResponseDto createPost(@RequestBody PostRequestDto requestDto, @ApiIgnore @AuthenticationPrincipal UserDetailsImpl userDetails) {
 
-        if(requestDto.getContents().equals("욕")){
-            throw new IllegalArgumentException("글 못올린다!");
-        }
         return postService.createPost(requestDto, userDetails.getUser());
     }
 
