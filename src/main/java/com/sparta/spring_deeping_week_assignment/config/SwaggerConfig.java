@@ -4,6 +4,7 @@ package com.sparta.spring_deeping_week_assignment.config;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
+import io.swagger.models.Swagger;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.converter.HttpMessageConverter;
@@ -27,6 +28,7 @@ import static com.sparta.spring_deeping_week_assignment.jwt.JwtUtil.AUTHORIZATIO
 @EnableWebMvc
 public class SwaggerConfig implements WebMvcConfigurer {
 
+    private static final String REFERENCE = "Bearer ";
 
     // EnableWebMvc로 인하여 JSON 타입 포맷팅이 안나와서 수동으로 넣어줌
     @Override
@@ -45,8 +47,6 @@ public class SwaggerConfig implements WebMvcConfigurer {
         converters.add(converter);
         WebMvcConfigurer.super.extendMessageConverters(converters);
     }
-
-
 
 
     @Bean
@@ -80,7 +80,6 @@ public class SwaggerConfig implements WebMvcConfigurer {
     }
 
 
-
     private SecurityContext securityContext() {
         return springfox
                 .documentation
@@ -97,6 +96,7 @@ public class SwaggerConfig implements WebMvcConfigurer {
         authorizationScopes[0] = authorizationScope;
         return Arrays.asList(new SecurityReference("JWT", authorizationScopes));
     }
+
 
 
 }
