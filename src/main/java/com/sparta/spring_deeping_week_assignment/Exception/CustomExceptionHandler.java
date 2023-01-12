@@ -6,12 +6,12 @@ import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 
 @RestControllerAdvice
-public class TestExceptionHandler {
+public class CustomExceptionHandler {
 
 
         @ExceptionHandler(value = {IllegalArgumentException.class})
         public ResponseEntity<Object> handleApiRequestException(IllegalArgumentException ex) {
-            TestException restApiException = new TestException();
+            CustomException restApiException = new CustomException();
             restApiException.setHttpStatus(HttpStatus.BAD_REQUEST);
             restApiException.setErrorMessage(ex.getMessage());
 

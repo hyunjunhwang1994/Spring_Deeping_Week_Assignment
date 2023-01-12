@@ -83,6 +83,8 @@ public class WebSecurityConfig {
 
         http.formLogin().loginPage("/api/login-page").permitAll();
 
+
+
 //        http.formLogin().disable();
 //        http.addFilterAt(getAuthenticationFilter(), UsernamePasswordAuthenticationFilter.class);
 //

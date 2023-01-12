@@ -31,210 +31,96 @@ public class CommentService {
     private final LikeCommentsRepository likeCommentsRepository;
 
     @Transactional
-    public CommentsResponseDto createComments(Long id, CommentsRequestDto requestDto, HttpServletRequest request) {
+    public CommentsResponseDto createComments(Long postId, CommentsRequestDto requestDto, User user) {
+        Optional<Post> optionalPost = postRepository.findById(postId);
 
-        String token = jwtUtil.resolveToken(request);
-        Claims claims;
-
-        if (token != null) {
-            if (jwtUtil.validateToken(token)) {
-
-                claims = jwtUtil.getUserInfoFromToken(token);
-
-
-            } else {
-                throw new IllegalArgumentException("Token Error");
-            }
-
-            Optional<User> optionalUser = userRepository.findByUsername(claims.getSubject());
-
-            if (!optionalUser.isPresent()) {
-                return CommentsResponseDto.responseDto(StatusCode.BAD_REQUEST
-                        , ResponseMessage.USER_NOT_FOUND, null);
-            }
-
-            User user = optionalUser.get();
-
-
-            Optional<Post> optionalPost = postRepository.findById(id);
-
-            if (!optionalPost.isPresent()) {
-                return CommentsResponseDto.responseDto(StatusCode.BAD_REQUEST
-                        , ResponseMessage.NOT_FOUND_POST, null);
-            }
-
-            Post post = optionalPost.get();
-
-
-            Comment comment = new Comment(requestDto,user,post);
-
-            commentRepository.save(comment);
-
-            PostCommentResponseDto postCommentResponseDto = new PostCommentResponseDto(comment, 0);
-
-            return CommentsResponseDto.responseDto(StatusCode.OK
-                    , ResponseMessage.CREATE_COMMENT_SUCCESS, postCommentResponseDto);
-
-
-
-        } else {
-            return CommentsResponseDto.responseDto(StatusCode.BAD_REQUEST
-                    , ResponseMessage.TOKEN_AUTH_ERROR, null);
+        if (!optionalPost.isPresent()) {
+            throw new IllegalArgumentException(ResponseMessage.NOT_FOUND_POST);
         }
 
+        Post post = optionalPost.get();
 
+        Comment comment = new Comment(requestDto, user, post);
+        commentRepository.save(comment);
 
-
+        PostCommentResponseDto postCommentResponseDto = new PostCommentResponseDto(comment, 0);
+        return CommentsResponseDto.responseDto(StatusCode.OK
+                , ResponseMessage.CREATE_COMMENT_SUCCESS, postCommentResponseDto);
     }
 
     @Transactional
-    public CommentsResponseDto updateComments(Long id, CommentsRequestDto requestDto, HttpServletRequest request) {
-
-        String token = jwtUtil.resolveToken(request);
-        Claims claims;
-
-        if (token != null) {
-            if (jwtUtil.validateToken(token)) {
-
-                claims = jwtUtil.getUserInfoFromToken(token);
-
-
-            } else {
-                throw new IllegalArgumentException("Token Error");
-            }
-
-            User user = userRepository.findByUsername(claims.getSubject()).orElseThrow(
-                    () -> new IllegalArgumentException("사용자가 존재하지 않습니다.")
-            );
-
-
-            Comment comment = commentRepository.findByIdAndUser_Id(id, user.getId());
-
-
-
-
-            if (user.getRole() == UserRoleEnum.ADMIN) {
-                Optional<Comment> commentAdmin = commentRepository.findById(id);
-
-                if (commentAdmin.isPresent()) {
-                    Comment temp = commentAdmin.get();
-                    temp.updateComment(requestDto);
-
-                    List<LikeComments> likeCommentsList = likeCommentsRepository.findByCommentId(comment.getId());
-
-                    PostCommentResponseDto postCommentResponseDto = new PostCommentResponseDto(temp, likeCommentsList.size());
-
-                    return CommentsResponseDto.responseDto(StatusCode.OK
-                            , ResponseMessage.UPDATE_COMMENT_SUCCESS, postCommentResponseDto);
-
-                }
-
-            }
-
-
-
-
-
-
-
-
-
-
-
-            if(comment != null){
-
+    public CommentsResponseDto updateComments(Long commentsId, CommentsRequestDto requestDto, User user) {
+        // ** ADMIN **
+        if (user.getRole() == UserRoleEnum.ADMIN) {
+            Optional<Comment> commentOptional = commentRepository.findById(commentsId);
+            if (commentOptional.isPresent()) {
+                Comment comment = commentOptional.get();
                 comment.updateComment(requestDto);
-                List<LikeComments> likeCommentsList = likeCommentsRepository.findByCommentId(comment.getId());
 
-                PostCommentResponseDto postCommentResponseDto = new PostCommentResponseDto(comment, likeCommentsList.size());
+                // 좋아요 갯수 반환
+                List<LikeComments> likeCommentsList = likeCommentsRepository.findByCommentId(comment.getId());
+                PostCommentResponseDto postCommentResponseDto =
+                        new PostCommentResponseDto(comment, likeCommentsList.size());
 
                 return CommentsResponseDto.responseDto(StatusCode.OK
                         , ResponseMessage.UPDATE_COMMENT_SUCCESS, postCommentResponseDto);
-
-            }else{
-                return CommentsResponseDto.responseDto(StatusCode.OK
-                        , ResponseMessage.UPDATE_COMMENT_FAIL, null);
+            } else {
+                throw new IllegalArgumentException(ResponseMessage.NOT_FOUND_POST);
             }
-
-
-
-
-
-
-
-        } else {
-            return CommentsResponseDto.responseDto(StatusCode.OK
-                    , ResponseMessage.UPDATE_COMMENT_FAIL, null);
         }
 
+        // ** USER **
+        Comment comment = commentRepository.findByIdAndUser_Id(commentsId, user.getId());
+        if (comment != null) {
+            comment.updateComment(requestDto);
 
+            // 좋아요 갯수 반환
+            List<LikeComments> likeCommentsList = likeCommentsRepository.findByCommentId(comment.getId());
 
+            PostCommentResponseDto postCommentResponseDto =
+                    new PostCommentResponseDto(comment, likeCommentsList.size());
+
+            return CommentsResponseDto.responseDto(StatusCode.OK
+                    , ResponseMessage.UPDATE_COMMENT_SUCCESS, postCommentResponseDto);
+
+        } else {
+            throw new IllegalArgumentException(ResponseMessage.UPDATE_COMMENT_FAIL);
+        }
     }
 
 
-    public CommentsResponseDto deleteComments(Long id, HttpServletRequest request) {
+    public CommentsResponseDto deleteComments(Long commentsId, User user) {
+        // ** ADMIN **
+        if (user.getRole() == UserRoleEnum.ADMIN) {
+            Optional<Comment> commentOptional = commentRepository.findById(commentsId);
 
-        String token = jwtUtil.resolveToken(request);
-        Claims claims;
-
-        if (token != null) {
-            if (jwtUtil.validateToken(token)) {
-                claims = jwtUtil.getUserInfoFromToken(token);
-            } else {
-                throw new IllegalArgumentException("Token Error");
-            }
-            User user = userRepository.findByUsername(claims.getSubject()).orElseThrow(
-                    () -> new IllegalArgumentException("사용자가 존재하지 않습니다.")
-            );
-
-            Comment comment = commentRepository.findByIdAndUser_Id(id, user.getId());
-
-
-
-
-
-            if (user.getRole() == UserRoleEnum.ADMIN) {
-                Optional<Comment> commentAdmin = commentRepository.findById(id);
-
-                if (commentAdmin.isPresent()) {
-                    Comment temp = commentAdmin.get();
-
-                    commentRepository.deleteById(id);
-
-                    return CommentsResponseDto.responseDto(StatusCode.OK
-                            , ResponseMessage.DELETE_COMMENT_SUCCESS, temp.getContents());
-
-
-                }
-
-            }
-
-
-
-
-
-
-
-
-
-
-
-            if(comment != null){
-                commentRepository.deleteById(id);
+            if (commentOptional.isPresent()) {
+                Comment comment = commentOptional.get();
+                commentRepository.deleteById(commentsId);
 
                 return CommentsResponseDto.responseDto(StatusCode.OK
                         , ResponseMessage.DELETE_COMMENT_SUCCESS, comment.getContents());
-
-            }else{
-                return CommentsResponseDto.responseDto(StatusCode.OK
-                        , ResponseMessage.DELETE_COMMENT_FAIL, null);
+            } else {
+                throw new IllegalArgumentException(ResponseMessage.NOT_FOUND_POST);
             }
 
-
-        } else {
-            return CommentsResponseDto.responseDto(StatusCode.OK
-                    , ResponseMessage.DELETE_COMMENT_FAIL, null);
         }
 
+
+        // ** USER **
+        Comment comment = commentRepository.findByIdAndUser_Id(commentsId, user.getId());
+        if (comment != null) {
+            commentRepository.deleteById(commentsId);
+
+            return CommentsResponseDto.responseDto(StatusCode.OK
+                    , ResponseMessage.DELETE_COMMENT_SUCCESS, comment.getContents());
+
+        } else {
+            throw new IllegalArgumentException(ResponseMessage.DELETE_COMMENT_FAIL);
+        }
+
+
     }
+
 }
+

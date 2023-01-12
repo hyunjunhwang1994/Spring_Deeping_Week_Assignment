@@ -8,6 +8,7 @@ import com.sparta.spring_deeping_week_assignment.dto.UserSignupResponseDto;
 import com.sparta.spring_deeping_week_assignment.message.ResponseMessage;
 import com.sparta.spring_deeping_week_assignment.message.StatusCode;
 import com.sparta.spring_deeping_week_assignment.service.UserService;
+import io.swagger.annotations.ApiOperation;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
@@ -34,18 +35,17 @@ public class UserController {
     @GetMapping("/login-page")
     public UserSignupResponseDto  loginPage() {
 
-
-
         //AOP 버전
         throw new IllegalArgumentException(ResponseMessage.TOKEN_AUTH_ERROR);
 
-// 기존 버전
-//        return UserSignupResponseDto.responseDto(StatusCode.BAD_REQUEST
-//                , ResponseMessage.LOGIN_FAIL, null);
 
     }
 
 
+
+    @ApiOperation(
+            value = "회원 가입"
+            , notes = "JSON 형식의 회원 데이터를 받아 회원 가입을 진행합니다.")
     @PostMapping("/signup")
     public UserSignupResponseDto signup(@RequestBody @Validated UserSignupRequestDto userSignupRequestDto
             , @ApiIgnore Errors errors) {
@@ -60,7 +60,9 @@ public class UserController {
         return userService.signup(userSignupRequestDto);
     }
 
-
+    @ApiOperation(
+            value = "로그인"
+            , notes = "JSON 형식의 회원 데이터를 받아 로그인을 진행합니다.")
     @PostMapping("/login")
     public ResponseEntity<UserLoginResponseDto> login(@RequestBody UserLoginRequestDto userLoginRequestDto, HttpServletResponse response) {
         UserLoginResponseDto userLoginResponseDto = userService.login(userLoginRequestDto, response);
@@ -71,15 +73,5 @@ public class UserController {
 
         return new ResponseEntity<>(userLoginResponseDto, headers, userLoginResponseDto.getStatus());
     }
-
-//    @PostMapping("/login")
-//    public String login(@AuthenticationPrincipal UserDetails userDetails) {
-//        System.out.println("*********************************************************");
-//        System.out.println("UserController.login");
-//        System.out.println("userDetails.getUsername() = " + userDetails.getUsername());
-//        System.out.println("*********************************************************");
-//
-//        return "success";
-//    }
 
 }

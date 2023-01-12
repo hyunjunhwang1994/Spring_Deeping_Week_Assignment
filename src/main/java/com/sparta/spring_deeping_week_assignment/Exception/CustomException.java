@@ -6,7 +6,7 @@ import org.springframework.http.HttpStatus;
 
 @Getter
 @Setter
-public class TestException {
+public class CustomException {
 
     private String errorMessage;
     private HttpStatus httpStatus;

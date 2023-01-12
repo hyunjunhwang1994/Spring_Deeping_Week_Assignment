@@ -3,17 +3,15 @@ package com.sparta.spring_deeping_week_assignment.service;
 
 import com.sparta.spring_deeping_week_assignment.dto.*;
 import com.sparta.spring_deeping_week_assignment.entity.*;
-import com.sparta.spring_deeping_week_assignment.jwt.JwtUtil;
+
 import com.sparta.spring_deeping_week_assignment.message.ResponseMessage;
 import com.sparta.spring_deeping_week_assignment.message.StatusCode;
 import com.sparta.spring_deeping_week_assignment.repository.*;
 
-import io.jsonwebtoken.Claims;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import javax.servlet.http.HttpServletRequest;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
@@ -23,7 +21,6 @@ import java.util.Optional;
 public class PostService {
 
     private final PostRepository postRepository;
-    private final UserRepository userRepository;
     private final CommentRepository commentRepository;
 
     private final LikePostRepository likePostRepository;
@@ -32,11 +29,8 @@ public class PostService {
 
     public PostResponseDto createPost(PostRequestDto requestDto, User user) {
 
-
-
             Post post = new Post(requestDto, user);
             postRepository.save(post);
-
 
             List<Comment> commentList = commentRepository.findAllByPost_IdOrderByCreatedAtDesc(post.getId());
             List<PostCommentResponseDto> postCommentResponseDto = new ArrayList<>();
