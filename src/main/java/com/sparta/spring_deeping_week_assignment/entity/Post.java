@@ -36,8 +36,11 @@ public class Post extends Timestamped{
     @JoinColumn(name = "USER_ID", nullable = false)
     private User user;
 
-    @OneToMany(mappedBy = "post", orphanRemoval = true)
+    @OneToMany(mappedBy = "post", cascade = CascadeType.ALL, orphanRemoval = true)
     List<Comment> comments = new ArrayList<>();
+
+    @OneToMany(mappedBy = "post", cascade = CascadeType.ALL, orphanRemoval = true)
+    List<LikePost> likePosts = new ArrayList<>();
 
     @Builder
     public Post(Long id, String title, String contents) {

@@ -32,10 +32,9 @@ public class Comment extends Timestamped {
     @JoinColumn(name = "POST_ID", nullable = false)
     private Post post;
 
-    @OneToMany(mappedBy = "user")
-    List<LikePost> likePosts = new ArrayList<>();
 
-    @OneToMany(mappedBy = "user")
+
+    @OneToMany(mappedBy = "comment", cascade = CascadeType.ALL, orphanRemoval = true)
     List<LikeComments> likeComments = new ArrayList<>();
 
 

@@ -29,25 +29,22 @@ public class PostService {
 
     public PostResponseDto createPost(PostRequestDto requestDto, User user) {
 
-            Post post = new Post(requestDto, user);
-            postRepository.save(post);
+        Post post = new Post(requestDto, user);
+        postRepository.save(post);
 
-            List<Comment> commentList = commentRepository.findAllByPost_IdOrderByCreatedAtDesc(post.getId());
-            List<PostCommentResponseDto> postCommentResponseDto = new ArrayList<>();
+        List<Comment> commentList = commentRepository.findAllByPost_IdOrderByCreatedAtDesc(post.getId());
+        List<PostCommentResponseDto> postCommentResponseDto = new ArrayList<>();
 
-            for (Comment comment : commentList) {               // 포스트를 만들 때 응답이므로 좋아요 수 0
-                postCommentResponseDto.add(new PostCommentResponseDto(comment, 0));
-            }
-
-
-
-            PostResponseDto postResponseDto = new PostResponseDto(post, postCommentResponseDto, 0);
-
-            return postResponseDto;
-
+        for (Comment comment : commentList) {               // 포스트를 만들 때 응답이므로 좋아요 수 0
+            postCommentResponseDto.add(new PostCommentResponseDto(comment, 0));
         }
 
 
+        PostResponseDto postResponseDto = new PostResponseDto(post, postCommentResponseDto, 0);
+
+        return postResponseDto;
+
+    }
 
 
     @Transactional(readOnly = true)
@@ -58,38 +55,33 @@ public class PostService {
         List<PostResponseDto> postResponseDtoList = new ArrayList<>();
 
 
-
-
-
-
         List<Comment> commentList;
-        List<PostCommentResponseDto> postCommentResponseDto = new ArrayList<>();
+        List<PostCommentResponseDto> postCommentResponseDto;
 
         List<LikePost> likePostsList;
         List<LikeComments> likeCommentsList;
 
         for (Post post : postList) {
-
+            // 해당 포스트의 글번호로 해당 글의 댓글을 전부 가지고옴
             commentList = commentRepository.findAllByPost_IdOrderByCreatedAtDesc(post.getId());
+            // 해당 포스트의 글번호로 해당 게시글의 좋아요를 전부 가지고옴
             likePostsList = likePostRepository.findByPostId(post.getId());
 
 
-
-
+            postCommentResponseDto = new ArrayList<>();
             for (Comment comment : commentList) {
+                // 해당 댓글의 좋아요 수를 카운트하기 위해 가저옴
                 likeCommentsList = likeCommentsRepository.findByCommentId(comment.getId());
 
+                // 해당글의 댓글과 해당 댓글의 좋아요를 담음.
                 postCommentResponseDto.add(new PostCommentResponseDto(comment, likeCommentsList.size()));
-
             }
 
-
-
-            PostResponseDto postResponseDto = new PostResponseDto(post, postCommentResponseDto,likePostsList.size());
+            PostResponseDto postResponseDto = new PostResponseDto(post, postCommentResponseDto, likePostsList.size());
             postResponseDtoList.add(postResponseDto);
 
-        }
 
+        }
         return postResponseDtoList;
     }
 
@@ -99,7 +91,6 @@ public class PostService {
         Post post = postRepository.findById(id).orElseThrow(
                 () -> new IllegalArgumentException("해당 글이 존재하지 않습니다.")
         );
-
 
 
         List<Comment> commentList = commentRepository.findAllByPost_IdOrderByCreatedAtDesc(post.getId());
@@ -120,59 +111,55 @@ public class PostService {
         PostResponseDto postResponseDto = new PostResponseDto(post, postCommentResponseDto, likePostsList.size());
 
 
-
         return postResponseDto;
     }
-
 
 
     @Transactional
     public PostDeleteResponseDto deletePost(Long id, User user) {
 
 
-            if (user.getRole() == UserRoleEnum.ADMIN) {
-                Optional<Post> post = postRepository.findById(id);
-                if (post.isPresent()) {
+        if (user.getRole() == UserRoleEnum.ADMIN) {
+            Optional<Post> post = postRepository.findById(id);
+            if (post.isPresent()) {
 
-                    commentRepository.deleteByPost_Id(id);
-                    postRepository.deleteById(id);
+                commentRepository.deleteByPost_Id(id);
+                postRepository.deleteById(id);
 
-                    PostDeleteResponseDto postDeleteResponseDto = new PostDeleteResponseDto(
-                            StatusCode.OK, ResponseMessage.POST_DELETE_SUCCESS,1);
-                    return postDeleteResponseDto;
-
-                }else{
-
-                    PostDeleteResponseDto postDeleteResponseDto = new PostDeleteResponseDto(
-                            StatusCode.OK, ResponseMessage.POST_DELETE_FAIL,0);
-                    return postDeleteResponseDto;
-
-                }
-            }
-
-
-
-            Post post = postRepository.findByIdAndUser_Id(id, user.getId());
-
-            if(post != null){
-
-                if(post.getUser().getId().equals(user.getId())){
-                    commentRepository.deleteByPost_Id(id);
-                    postRepository.deleteById(id);
-                    PostDeleteResponseDto postDeleteResponseDto = new PostDeleteResponseDto(
-                            StatusCode.OK, ResponseMessage.POST_DELETE_SUCCESS,1);
-                    return postDeleteResponseDto;
-                }else{
-
-                    throw new IllegalArgumentException(ResponseMessage.USER_NOT_FOUND);
-                }
+                PostDeleteResponseDto postDeleteResponseDto = new PostDeleteResponseDto(
+                        StatusCode.OK, ResponseMessage.POST_DELETE_SUCCESS, 1);
+                return postDeleteResponseDto;
 
             } else {
+
                 PostDeleteResponseDto postDeleteResponseDto = new PostDeleteResponseDto(
-                        StatusCode.OK, ResponseMessage.POST_DELETE_FAIL,0);
+                        StatusCode.OK, ResponseMessage.POST_DELETE_FAIL, 0);
                 return postDeleteResponseDto;
+
+            }
+        }
+
+
+        Post post = postRepository.findByIdAndUser_Id(id, user.getId());
+
+        if (post != null) {
+
+            if (post.getUser().getId().equals(user.getId())) {
+                commentRepository.deleteByPost_Id(id);
+                postRepository.deleteById(id);
+                PostDeleteResponseDto postDeleteResponseDto = new PostDeleteResponseDto(
+                        StatusCode.OK, ResponseMessage.POST_DELETE_SUCCESS, 1);
+                return postDeleteResponseDto;
+            } else {
+
+                throw new IllegalArgumentException(ResponseMessage.USER_NOT_FOUND);
             }
 
+        } else {
+            PostDeleteResponseDto postDeleteResponseDto = new PostDeleteResponseDto(
+                    StatusCode.OK, ResponseMessage.POST_DELETE_FAIL, 0);
+            return postDeleteResponseDto;
+        }
 
 
     }
@@ -181,68 +168,64 @@ public class PostService {
     public PostResponseDto updatePost(Long id, PostRequestDto requestDto, User user) {
 
 
+        // 운영자.
+        if (user.getRole().equals(UserRoleEnum.ADMIN)) {
+            // 위의 findByIdAndUser는 접속 유저 Id + 글 Id가 일치해야
+            // 데이터를 가지고오므로, 운영자의 경우 접속 시 데이터를 못가지고 옴 -> 그냥 id로 바로 접근.
+            Optional<Post> postOptional = postRepository.findById(id);
 
-            // 운영자.
-            if (user.getRole().equals(UserRoleEnum.ADMIN)) {
-                // 위의 findByIdAndUser는 접속 유저 Id + 글 Id가 일치해야
-                // 데이터를 가지고오므로, 운영자의 경우 접속 시 데이터를 못가지고 옴 -> 그냥 id로 바로 접근.
-                Optional<Post> postOptional = postRepository.findById(id);
+            if (postOptional.isPresent()) {
+                Post postAdmin = postOptional.get();
+                postAdmin.updatePost(requestDto);
 
-                if (postOptional.isPresent()) {
-                    Post postAdmin = postOptional.get();
-                    postAdmin.updatePost(requestDto);
+                // 해당 글의 모든 댓글 데이터 가져옴
+                List<Comment> commentList = commentRepository.findAllByPost_IdOrderByCreatedAtDesc(postAdmin.getId());
+                List<PostCommentResponseDto> postCommentResponseDto = new ArrayList<>();
 
-                    // 해당 글의 모든 댓글 데이터 가져옴
-                    List<Comment> commentList = commentRepository.findAllByPost_IdOrderByCreatedAtDesc(postAdmin.getId());
-                    List<PostCommentResponseDto> postCommentResponseDto = new ArrayList<>();
+                // 해당 글의 모든 좋아요 갯수 구하기.
+                List<LikePost> likePostsList;
+                likePostsList = likePostRepository.findByPostId(postAdmin.getId());
 
-                    // 해당 글의 모든 좋아요 갯수 구하기.
-                    List<LikePost> likePostsList;
-                    likePostsList = likePostRepository.findByPostId(postAdmin.getId());
-
-                    // 해당 글의, 모든 댓글 좋아요 갯수 구하기.
-                    List<LikeComments> likeCommentsList;
-                    for (Comment comment : commentList) {
-                        likeCommentsList = likeCommentsRepository.findByCommentId(comment.getId());
-                        postCommentResponseDto.add(new PostCommentResponseDto(comment, likeCommentsList.size()));
-                    }
-
-                    return  new PostResponseDto(postAdmin, postCommentResponseDto, likePostsList.size());
+                // 해당 글의, 모든 댓글 좋아요 갯수 구하기.
+                List<LikeComments> likeCommentsList;
+                for (Comment comment : commentList) {
+                    likeCommentsList = likeCommentsRepository.findByCommentId(comment.getId());
+                    postCommentResponseDto.add(new PostCommentResponseDto(comment, likeCommentsList.size()));
                 }
-            }
 
+                return new PostResponseDto(postAdmin, postCommentResponseDto, likePostsList.size());
+            }
+        }
 
 
         // 일반 유저
         Post post = postRepository.findByIdAndUser_Id(id, user.getId());
 
-            if(post != null){
-                post.updatePost(requestDto);
-                List<Comment> commentList = commentRepository.findAllByPost_IdOrderByCreatedAtDesc(post.getId());
-                List<PostCommentResponseDto> postCommentResponseDto = new ArrayList<>();
+        if (post != null) {
+            post.updatePost(requestDto);
+            List<Comment> commentList = commentRepository.findAllByPost_IdOrderByCreatedAtDesc(post.getId());
+            List<PostCommentResponseDto> postCommentResponseDto = new ArrayList<>();
 
-                List<LikePost> likePostsList;
-                likePostsList = likePostRepository.findByPostId(post.getId());
+            List<LikePost> likePostsList;
+            likePostsList = likePostRepository.findByPostId(post.getId());
 
-                List<LikeComments> likeCommentsList;
-                for (Comment comment : commentList) {
-                    likeCommentsList = likeCommentsRepository.findByCommentId(comment.getId());
-                    postCommentResponseDto.add(new PostCommentResponseDto(comment, likeCommentsList.size()));
+            List<LikeComments> likeCommentsList;
+            for (Comment comment : commentList) {
+                likeCommentsList = likeCommentsRepository.findByCommentId(comment.getId());
+                postCommentResponseDto.add(new PostCommentResponseDto(comment, likeCommentsList.size()));
 
-                }
-
-
-                return new PostResponseDto(post, postCommentResponseDto, likePostsList.size());
-            }else{
-                throw new IllegalArgumentException(ResponseMessage.NOT_FOUND_POST);
             }
 
+
+            return new PostResponseDto(post, postCommentResponseDto, likePostsList.size());
+        } else {
+            throw new IllegalArgumentException(ResponseMessage.NOT_FOUND_POST);
         }
 
-
-
-
     }
+
+
+}
 
 
 
