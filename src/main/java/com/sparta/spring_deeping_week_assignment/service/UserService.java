@@ -57,6 +57,8 @@ public class UserService {
 
         userSignupRequestDto.setAdminToken(null);
 
+        userSignupRequestDto.setPassword(password);
+
         return UserSignupResponseDto.responseDto(StatusCode.OK
                 , ResponseMessage.CREATED_USER, userSignupRequestDto );
 

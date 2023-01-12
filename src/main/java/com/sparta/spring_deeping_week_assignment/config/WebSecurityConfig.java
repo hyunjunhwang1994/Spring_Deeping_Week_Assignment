@@ -16,6 +16,10 @@ import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
+import org.springframework.web.cors.CorsConfiguration;
+import org.springframework.web.cors.CorsConfigurationSource;
+import org.springframework.web.cors.CorsUtils;
+import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 
 @Configuration
 @RequiredArgsConstructor
@@ -54,7 +58,7 @@ public class WebSecurityConfig {
 
         // h2-console 사용 및 resources 접근 허용 설정
         return (web) -> web.ignoring()
-                .requestMatchers(PathRequest.toH2Console())
+//                .requestMatchers(PathRequest.toH2Console())
                 .requestMatchers(PathRequest.toStaticResources().atCommonLocations());
     }
 
@@ -64,12 +68,12 @@ public class WebSecurityConfig {
         http.csrf().disable();
 
 
-
         // 기본 설정인 Session 방식은 사용하지 않고 JWT 방식을 사용하기 위한 설정
         http.sessionManagement().sessionCreationPolicy(SessionCreationPolicy.STATELESS);
 
 
         http.authorizeRequests()
+//                .requestMatchers(CorsUtils::isPreFlightRequest).permitAll()
                 .antMatchers("/api/signup").permitAll()
                 .antMatchers("/api/login").permitAll()
                 .antMatchers(PERMIT_URL_ARRAY).permitAll()
@@ -79,10 +83,11 @@ public class WebSecurityConfig {
                 .and()
 //                .addFilterAt(getAuthenticationFilter(), UsernamePasswordAuthenticationFilter.class)
                 .addFilterBefore(new JwtAuthFilter(jwtUtil), UsernamePasswordAuthenticationFilter.class);
-//                .addFilterBefore(new CustomSecurityFilter(userDetailsService, passwordEncoder()), UsernamePasswordAuthenticationFilter.class);
+//                .cors().and();
+
+        //                .addFilterBefore(new CustomSecurityFilter(userDetailsService, passwordEncoder()), UsernamePasswordAuthenticationFilter.class);
 
         http.formLogin().loginPage("/api/login-page").permitAll();
-
 
 
 //        http.formLogin().disable();
@@ -90,11 +95,27 @@ public class WebSecurityConfig {
 //
 
 
-
 //        http.exceptionHandling().accessDeniedPage("/api/user/forbidden");
 
         return http.build();
     }
+
+    // CORS 허용
+//    @Bean
+//    public CorsConfigurationSource corsConfigurationSource() {
+//        CorsConfiguration configuration = new CorsConfiguration();
+//        configuration.addAllowedOriginPattern("*");
+//        configuration.addAllowedMethod("*");
+//        configuration.addAllowedHeader("*");
+//        configuration.addExposedHeader("authorization");
+//        configuration.setAllowCredentials(true);
+//        configuration.setMaxAge(3600L);
+//        UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
+//        source.registerCorsConfiguration("/**", configuration);
+//        return source;
+//
+//    }
+
 
 //
 //    protected CustomUsernamePasswordAuthenticationFilter getAuthenticationFilter() {
@@ -117,8 +138,6 @@ public class WebSecurityConfig {
 //    public CustomAuthenticationManager customAuthenticationManager() {
 //        return new CustomAuthenticationManager(userDetailsService, passwordEncoder());
 //    }
-
-
 
 
 }
